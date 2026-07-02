@@ -1,33 +1,40 @@
 name: Deploy to GitHub Pages
 
-on:
+# Builds the Vite project and publishes ONLY the compiled dist/ output —
+# not the raw source. This is the piece that was missing: GitHub Pages
+# is a static file host, it doesn't run `npm run build` for you. Without
+# this, index.html's <script src="/src/main.jsx"> gets served as a raw
+# .jsx file with the wrong MIME type, and the browser refuses to run it
+# as a module — that's the exact "Expected a JavaScript-or-Wasm module
+# script" error this fixes.
+
+"on":
   push:
-    branches: 'main' # أو اجعلها master إذا كان هذا اسم الفرع عندك
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# Only one deployment at a time; a new push cancels an in-progress one.
 concurrency:
-  group: 'pages'
+  group: pages
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
@@ -35,11 +42,21 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Upload artifact
+      - name: Upload build output
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist'
+          path: ./dist
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
