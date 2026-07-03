@@ -9,6 +9,7 @@ import DialectToggle from './components/DialectToggle';
 import AlphabetRail from './components/AlphabetRail';
 import ResultCard from './components/ResultCard';
 import LinkButton from './components/LinkButton';
+import OfflineDownload from './components/OfflineDownload';
 
 const GITHUB_ORG_URL = 'https://github.com/Kurdish-Tech';
 const KEYBOARD_URL = 'https://kurdish-tech.github.io/kurdish-kurmanci-keyboard-layout/';
@@ -117,6 +118,8 @@ export default function Home() {
               {manifest.total_words.toLocaleString()} {dialect.nativeLabel} entries indexed
             </p>
           )}
+
+          <OfflineDownload dialect={dialect} manifest={manifest} />
 
           <div
             className="mt-6 flex animate-rise-in flex-wrap items-center justify-center gap-2 sm:mt-7 sm:gap-3"

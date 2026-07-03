@@ -4,7 +4,7 @@ import { candidateLetters } from '../lib/kurdishAlphabet';
 
 const indexCache = new Map(); // dialectKey -> manifest
 const chunkCache = new Map(); // "dialectKey/file" -> entries array
-const DATA_BASE = import.meta.env.BASE_URL + 'data';
+export const DATA_BASE = import.meta.env.BASE_URL + 'data';
 
 async function fetchJSON(url) {
   const res = await fetch(url);
