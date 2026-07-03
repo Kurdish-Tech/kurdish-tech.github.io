@@ -18,6 +18,14 @@ export default defineConfig({
           { url: 'data/ku/index.json', revision: null },
           { url: 'data/sor/index.json', revision: null },
         ],
+        // This app is hash-routed (see useHashRoute.js), so it only ever
+        // needs the offline navigation fallback for the bare root path.
+        // Without this, the SW's NavigationRoute intercepts every
+        // same-origin navigation — including sibling GitHub Pages project
+        // sites under kurdish-tech.github.io/<other-repo>/ — and wrongly
+        // serves this app's cached index.html instead of letting GitHub
+        // Pages serve the other repo.
+        navigateFallbackDenylist: [/^\/.+/],
         runtimeCaching: [
           {
             urlPattern: /\/data\/.*\.json$/,
