@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { DIALECTS } from './lib/kurdishAlphabet';
 import { useDictionary } from './hooks/useDictionary';
 import { useDebouncedValue } from './hooks/useDebouncedValue';
+import { useRecentSearches, useFavorites } from './hooks/useWordList';
 import RojDisc from './components/RojDisc';
 import SearchBar from './components/SearchBar';
 import DialectToggle from './components/DialectToggle';
@@ -28,6 +29,9 @@ export default function Home() {
   const dialect = DIALECTS[dialectKey];
   const { manifest, manifestError, search } = useDictionary(dialectKey);
   const inputRef = useRef(null);
+  const recentSearches = useRecentSearches();
+  const favorites = useFavorites();
+  const { add: addRecentSearch } = recentSearches;
 
   const runSearch = useCallback(
     async (q) => {
@@ -44,12 +48,17 @@ export default function Home() {
         setTruncated(t);
         setTotalMatches(tm || r.length);
         setStatus('ready');
+        // Only remember fully-typed, exact-match searches — partial
+        // keystrokes-in-progress would otherwise flood recent history.
+        if (r.length > 0 && r[0]._rank === 0) {
+          addRecentSearch(dialectKey, r[0].word);
+        }
       } catch (err) {
         setErrorMessage(err.message || 'Something went wrong loading that data.');
         setStatus('error');
       }
     },
-    [search]
+    [search, dialectKey, addRecentSearch]
   );
 
   useEffect(() => {
@@ -83,20 +92,30 @@ export default function Home() {
           aria-hidden="true"
         />
 
-        <section className="relative mx-auto max-w-3xl px-6 pb-8 pt-8 text-center sm:pb-10 sm:pt-16">
-          <h1
-            className="mb-3 animate-rise-in font-display text-3xl font-medium leading-tight tracking-tight text-ink dark:text-paper sm:text-5xl"
-          >
-            453.000 Peyvên Kurdî,
-            <br />
-            Ferhenga Herî Mezin
-          </h1>
-          <p
-            className="mx-auto mb-6 max-w-lg animate-rise-in text-sm text-slate-light dark:text-slate-dark sm:mb-8 sm:text-base"
-            style={{ animationDelay: '60ms' }}
-          >
-            Li peyvên Kurmancî û Soranî bigere. Bê daxistin, bi lez û hêsan.
-          </p>
+        <section
+          className={`relative mx-auto max-w-3xl px-6 text-center ${
+            query ? 'pb-4 pt-4 sm:pb-5 sm:pt-6' : 'pb-8 pt-8 sm:pb-10 sm:pt-16'
+          }`}
+        >
+          {/* Collapsed to just the essentials while actively typing, so on
+              mobile the on-screen keyboard doesn't push results out of
+              view — the user shouldn't need to scroll or dismiss the
+              keyboard just to see the first result. */}
+          {!query && (
+            <>
+              <h1 className="mb-3 animate-rise-in font-display text-3xl font-medium leading-tight tracking-tight text-ink dark:text-paper sm:text-5xl">
+                453.000 Peyvên Kurdî,
+                <br />
+                Ferhenga Herî Mezin
+              </h1>
+              <p
+                className="mx-auto mb-6 max-w-lg animate-rise-in text-sm text-slate-light dark:text-slate-dark sm:mb-8 sm:text-base"
+                style={{ animationDelay: '60ms' }}
+              >
+                Li peyvên Kurmancî û Soranî bigere. Bê daxistin, bi lez û hêsan.
+              </p>
+            </>
+          )}
 
           <div className="mb-4 flex animate-rise-in justify-center" style={{ animationDelay: '100ms' }}>
             <DialectToggle active={dialectKey} onChange={handleDialectChange} />
@@ -113,30 +132,38 @@ export default function Home() {
             />
           </div>
 
-          {manifest && (
-            <p className="mt-3 text-xs text-slate-light dark:text-slate-dark">
-              {manifest.total_words.toLocaleString()} {dialect.nativeLabel} entries indexed
-            </p>
+          {!query && (
+            <>
+              {manifest && (
+                <p className="mt-3 text-xs text-slate-light dark:text-slate-dark">
+                  {manifest.total_words.toLocaleString()} {dialect.nativeLabel} entries indexed
+                </p>
+              )}
+
+              <OfflineDownload dialect={dialect} manifest={manifest} />
+
+              <div
+                className="mt-6 flex animate-rise-in flex-wrap items-center justify-center gap-2 sm:mt-7 sm:gap-3"
+                style={{ animationDelay: '180ms' }}
+              >
+                <LinkButton href={GITHUB_ORG_URL} icon="code" shortLabel="GitHub">
+                  Rêxistina Me li GitHub
+                </LinkButton>
+                <LinkButton href={KEYBOARD_URL} icon="keyboard" shortLabel="Klavyeya Windows">
+                  Daxistina Keyboarda Kurdî bo Windows
+                </LinkButton>
+              </div>
+            </>
           )}
-
-          <OfflineDownload dialect={dialect} manifest={manifest} />
-
-          <div
-            className="mt-6 flex animate-rise-in flex-wrap items-center justify-center gap-2 sm:mt-7 sm:gap-3"
-            style={{ animationDelay: '180ms' }}
-          >
-            <LinkButton href={GITHUB_ORG_URL} icon="code" shortLabel="GitHub">
-              Rêxistina Me li GitHub
-            </LinkButton>
-            <LinkButton href={KEYBOARD_URL} icon="keyboard" shortLabel="Klavyeya Windows">
-              Daxistina Keyboarda Kurdî bo Windows
-            </LinkButton>
-          </div>
         </section>
       </div>
 
       <main className="mx-auto max-w-5xl px-6 pb-16">
-        <div className="mb-8 overflow-hidden rounded-2xl border border-paper-border bg-paper-raised/60 p-3 dark:border-ink-border dark:bg-ink-raised/60 sm:p-4">
+        <div
+          className={`mb-8 overflow-hidden rounded-2xl border border-paper-border bg-paper-raised/60 p-3 dark:border-ink-border dark:bg-ink-raised/60 sm:p-4 ${
+            query ? 'hidden sm:block' : ''
+          }`}
+        >
           <AlphabetRail
             dialect={dialect}
             activeLetter={activeLetter}
@@ -159,11 +186,53 @@ export default function Home() {
         )}
 
         {status === 'idle' && !query && (
-          <div className="flex flex-col items-center gap-3 py-16 text-center text-slate-light dark:text-slate-dark">
-            <RojDisc size={40} rayCount={12} className="opacity-30" />
-            <p className="text-sm">
-              Li jor peyvekê binivîse, an jî tîpekê hilbijêre.
-            </p>
+          <div className="flex flex-col items-center gap-8 py-12 text-center">
+            {favorites.list.length === 0 && recentSearches.list.length === 0 && (
+              <div className="flex flex-col items-center gap-3 text-slate-light dark:text-slate-dark">
+                <RojDisc size={40} rayCount={12} className="opacity-30" />
+                <p className="text-sm">
+                  Li jor peyvekê binivîse, an jî tîpekê hilbijêre.
+                </p>
+              </div>
+            )}
+
+            {favorites.list.length > 0 && (
+              <div className="w-full max-w-2xl">
+                <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-light dark:text-slate-dark">
+                  Bijarte
+                </h2>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {favorites.list.map((e) => (
+                    <button
+                      key={e.dialectKey + e.word}
+                      onClick={() => handleTermClick(e.dialectKey, e.word)}
+                      className={`rounded-full border border-paper-border bg-paper-raised px-3 py-1.5 text-sm text-ink transition-colors hover:border-roj hover:text-roj-deep dark:border-ink-border dark:bg-ink-raised dark:text-paper dark:hover:border-roj dark:hover:text-roj-soft ${DIALECTS[e.dialectKey].fontClass}`}
+                    >
+                      {e.word}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {recentSearches.list.length > 0 && (
+              <div className="w-full max-w-2xl">
+                <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-light dark:text-slate-dark">
+                  Lêgerînên Dawî
+                </h2>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {recentSearches.list.map((e) => (
+                    <button
+                      key={e.dialectKey + e.word}
+                      onClick={() => handleTermClick(e.dialectKey, e.word)}
+                      className={`rounded-full border border-paper-border bg-paper px-3 py-1.5 text-sm text-slate-light transition-colors hover:border-roj hover:text-roj-deep dark:border-ink-border dark:bg-ink dark:text-slate-dark dark:hover:border-roj dark:hover:text-roj-soft ${DIALECTS[e.dialectKey].fontClass}`}
+                    >
+                      {e.word}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -188,6 +257,10 @@ export default function Home() {
                   entry={entry}
                   dialectKey={dialectKey}
                   onTermClick={handleTermClick}
+                  isFavorite={favorites.has(dialectKey, entry.word)}
+                  onToggleFavorite={(dk, word) =>
+                    favorites.has(dk, word) ? favorites.remove(dk, word) : favorites.add(dk, word)
+                  }
                   style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}
                 />
               ))}

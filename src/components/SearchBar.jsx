@@ -39,8 +39,8 @@ const SearchBar = forwardRef(function SearchBar(
         <button
           onClick={() => onChange('')}
           aria-label="Clear search"
-          className={`absolute top-1/2 -translate-y-1/2 rounded-full p-1.5 text-slate-light hover:bg-paper hover:text-ink dark:text-slate-dark dark:hover:bg-ink dark:hover:text-paper ${
-            dialect.dir === 'rtl' ? 'left-4' : 'right-4'
+          className={`absolute top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-slate-light hover:bg-paper hover:text-ink dark:text-slate-dark dark:hover:bg-ink dark:hover:text-paper ${
+            dialect.dir === 'rtl' ? 'left-2' : 'right-2'
           }`}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

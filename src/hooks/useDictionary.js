@@ -40,6 +40,50 @@ function partOverlapsPrefix(part, prefix) {
   return prefix <= last && queryHigh >= first;
 }
 
+// Cheap one-pass check for edit distance <= 1 (single insertion, deletion,
+// or substitution) — enough to catch a single typo without pulling in a
+// full Levenshtein matrix.
+function withinOneEdit(a, b) {
+  if (a === b) return true;
+  const la = a.length;
+  const lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0;
+  let j = 0;
+  let edits = 0;
+  while (i < la && j < lb) {
+    if (a[i] === b[j]) {
+      i++;
+      j++;
+      continue;
+    }
+    edits++;
+    if (edits > 1) return false;
+    if (la === lb) {
+      i++;
+      j++;
+    } else if (la > lb) {
+      i++;
+    } else {
+      j++;
+    }
+  }
+  edits += la - i + (lb - j);
+  return edits <= 1;
+}
+
+// Ranks how a query matched an entry, used to sort exact/prefix hits above
+// looser substring or typo-tolerant ones. Lower is better; null means no match.
+function matchRank(word, query) {
+  if (word === query) return 0;
+  if (word.startsWith(query)) return 1;
+  if (word.includes(query)) return 2;
+  if (query.length >= 3 && Math.abs(word.length - query.length) <= 1 && withinOneEdit(query, word)) {
+    return 3;
+  }
+  return null;
+}
+
 /**
  * Loads the manifest for a dialect once (for the alphabet rail / stats),
  * and exposes a `search(query)` function that fetches only the chunk
@@ -78,10 +122,17 @@ export function useDictionary(dialectKey) {
         (l) => idx.letters[l]
       );
 
+      // Only prefix matches are guaranteed to live in the alphabetical
+      // range partOverlapsPrefix checks — a substring or typo match can sort
+      // anywhere within the letter bucket, so once the query is long enough
+      // to plausibly be a substring/fuzzy search (rather than someone still
+      // typing a prefix), fetch every part of the candidate letter buckets
+      // instead of just the narrow overlapping range.
+      const mayNeedFullBucket = query.length >= 3;
       const partsToFetch = [];
       for (const letter of letters) {
         for (const part of idx.letters[letter]) {
-          if (partOverlapsPrefix(part, query)) {
+          if (mayNeedFullBucket || partOverlapsPrefix(part, query)) {
             partsToFetch.push(part.file);
           }
         }
@@ -101,20 +152,28 @@ export function useDictionary(dialectKey) {
       for (const chunk of chunks) {
         for (const entry of chunk) {
           const wordLower = entry.word.toLowerCase();
-          const wordStarts = wordLower.startsWith(query);
-          const synonymMatch =
-            !wordStarts &&
-            (entry.synonyms || []).some((s) => s.toLowerCase().startsWith(query));
-          if (!wordStarts && !synonymMatch) continue;
+          let rank = matchRank(wordLower, query);
+          let viaSynonym = false;
+
+          if (rank === null) {
+            for (const s of entry.synonyms || []) {
+              const synRank = matchRank(s.toLowerCase(), query);
+              if (synRank !== null && (rank === null || synRank < rank)) {
+                rank = synRank;
+                viaSynonym = true;
+              }
+            }
+          }
+          if (rank === null) continue;
+
           if (seen.has(entry.word + '|' + (entry.pos || ''))) continue;
           seen.add(entry.word + '|' + (entry.pos || ''));
-          matches.push({ ...entry, _exact: wordLower === query, _viaSynonym: synonymMatch });
+          matches.push({ ...entry, _rank: viaSynonym ? rank + 0.5 : rank });
         }
       }
 
       matches.sort((a, b) => {
-        if (a._exact !== b._exact) return a._exact ? -1 : 1;
-        if (a._viaSynonym !== b._viaSynonym) return a._viaSynonym ? 1 : -1;
+        if (a._rank !== b._rank) return a._rank - b._rank;
         return a.word.localeCompare(b.word);
       });
 
