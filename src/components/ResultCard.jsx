@@ -81,6 +81,22 @@ export default function ResultCard({ entry, dialectKey, onTermClick, isFavorite,
         </ol>
       )}
 
+      {entry.arabic_equivalents && entry.arabic_equivalents.length > 0 && (
+        <div dir="rtl" className="mb-4 flex flex-wrap items-center gap-1.5">
+          <span className="text-xs font-medium uppercase tracking-wide text-zagros-deep dark:text-zagros-soft">
+            عربي ←
+          </span>
+          {entry.arabic_equivalents.map((w) => (
+            <span
+              key={w}
+              className="rounded-full border border-zagros/30 bg-zagros/10 px-2.5 py-1 font-arabic text-sm text-zagros-deep dark:border-zagros/40 dark:bg-zagros/15 dark:text-zagros-soft"
+            >
+              {w}
+            </span>
+          ))}
+        </div>
+      )}
+
       {entry.synonyms && entry.synonyms.length > 0 && (
         <div dir={dialect.dir} className="mb-3 flex flex-wrap items-center gap-1.5">
           <span className="text-xs font-medium uppercase tracking-wide text-slate-light dark:text-slate-dark">

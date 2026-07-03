@@ -3,8 +3,31 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { candidateLetters } from '../lib/kurdishAlphabet';
 
 const indexCache = new Map(); // dialectKey -> manifest
-const chunkCache = new Map(); // "dialectKey/file" -> entries array
 export const DATA_BASE = import.meta.env.BASE_URL + 'data';
+
+// Bounded LRU for parsed chunk data — the service worker's own Cache
+// Storage (disk) already keeps every fetched chunk for instant offline
+// re-fetch, so this only needs to avoid re-parsing JSON on the very next
+// keystroke. Without a cap, a long session searching many different
+// letters would keep every parsed chunk (each up to ~1.75MB of JS
+// objects) resident in the tab's memory for the page's entire lifetime.
+const CHUNK_CACHE_LIMIT = 20;
+const chunkCache = new Map(); // "dialectKey/file" -> entries array
+
+function chunkCacheGet(key) {
+  if (!chunkCache.has(key)) return undefined;
+  const value = chunkCache.get(key);
+  chunkCache.delete(key);
+  chunkCache.set(key, value); // refresh recency
+  return value;
+}
+
+function chunkCacheSet(key, value) {
+  chunkCache.set(key, value);
+  if (chunkCache.size > CHUNK_CACHE_LIMIT) {
+    chunkCache.delete(chunkCache.keys().next().value); // evict least-recently-used
+  }
+}
 
 async function fetchJSON(url) {
   const res = await fetch(url);
@@ -23,9 +46,10 @@ async function getIndex(dialectKey) {
 
 async function getChunk(dialectKey, file) {
   const cacheKey = `${dialectKey}/${file}`;
-  if (chunkCache.has(cacheKey)) return chunkCache.get(cacheKey);
+  const cached = chunkCacheGet(cacheKey);
+  if (cached) return cached;
   const data = await fetchJSON(`${DATA_BASE}/${dialectKey}/${file}`);
-  chunkCache.set(cacheKey, data);
+  chunkCacheSet(cacheKey, data);
   return data;
 }
 
