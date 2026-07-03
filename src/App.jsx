@@ -1,8 +1,10 @@
 // src/App.jsx
 import { useState, useEffect } from 'react';
 import { useHashRoute } from './hooks/useHashRoute';
+import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import UpdateToast from './components/UpdateToast';
 import Home from './Home';
 import About from './About';
 
@@ -27,6 +29,7 @@ function useTheme() {
 export default function App() {
   const [theme, setTheme] = useTheme();
   const [route, navigate] = useHashRoute();
+  const { needRefresh, applyUpdate } = useServiceWorkerUpdate();
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -35,6 +38,7 @@ export default function App() {
         {route === '/about' ? <About /> : <Home />}
       </div>
       <Footer navigate={navigate} />
+      {needRefresh && <UpdateToast onUpdate={applyUpdate} />}
     </div>
   );
 }

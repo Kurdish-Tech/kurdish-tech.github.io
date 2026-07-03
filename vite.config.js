@@ -1,12 +1,29 @@
+import { createHash } from 'crypto';
+import { readFileSync } from 'fs';
+import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+
+// A precached entry only gets re-fetched by Workbox when its `revision`
+// changes between builds. Hashing the manifest's actual bytes means that
+// changes (new words, new translations) always force a refetch, while a
+// rebuild that didn't touch the data doesn't churn the cache for nothing.
+function dataManifestRevision(dialectKey) {
+  const filePath = path.resolve(__dirname, 'public', 'data', dialectKey, 'index.json');
+  return createHash('md5').update(readFileSync(filePath)).digest('hex');
+}
 
 export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' instead of 'autoUpdate': a new service worker installs in
+      // the background as before, but doesn't silently take over an open
+      // tab — the app shows an "update available" banner (see
+      // useServiceWorkerUpdate.js) so users get a visible, deliberate way
+      // to refresh instead of the page just changing under them.
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       // The word-data chunks (~64MB) are cached at runtime as they're
       // searched, not precached — precaching all of it would bloat the
@@ -15,8 +32,8 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg}'],
         additionalManifestEntries: [
-          { url: 'data/ku/index.json', revision: null },
-          { url: 'data/sor/index.json', revision: null },
+          { url: 'data/ku/index.json', revision: dataManifestRevision('ku') },
+          { url: 'data/sor/index.json', revision: dataManifestRevision('sor') },
         ],
         // This app is hash-routed (see useHashRoute.js), so it only ever
         // needs the offline navigation fallback for the bare root path.
@@ -28,8 +45,17 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/.+/],
         runtimeCaching: [
           {
+            // StaleWhileRevalidate, not CacheFirst: chunk filenames (e.g.
+            // "k-2.json") aren't content-hashed like the JS/CSS bundle, so
+            // CacheFirst would serve a word list from months ago forever
+            // once cached, even after the server's data has been updated.
+            // SWR still answers instantly from cache (so search stays
+            // fast and works offline), but also refetches in the
+            // background whenever online, so the cache heals itself
+            // within one extra round-trip instead of staying stale until
+            // a 1-year expiry.
             urlPattern: /\/data\/.*\.json$/,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'ferheng-data',
               expiration: {
