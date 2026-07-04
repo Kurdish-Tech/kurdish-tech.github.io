@@ -146,60 +146,67 @@ export function useDictionary(dialectKey) {
         (l) => idx.letters[l]
       );
 
-      // Only prefix matches are guaranteed to live in the alphabetical
-      // range partOverlapsPrefix checks — a substring or typo match can sort
-      // anywhere within the letter bucket, so once the query is long enough
-      // to plausibly be a substring/fuzzy search (rather than someone still
-      // typing a prefix), fetch every part of the candidate letter buckets
-      // instead of just the narrow overlapping range.
-      const mayNeedFullBucket = query.length >= 3;
-      const partsToFetch = [];
+      // A prefix match is guaranteed to live in the alphabetical range
+      // partOverlapsPrefix checks, so that narrow fetch is enough for the
+      // common case. A substring or typo match can sort anywhere in the
+      // bucket, but fetching the *whole* bucket on every 3+ character
+      // keystroke was a real cost — a bucket can be several parts and
+      // several MB, so a search that would've been answered by one small
+      // narrow part was paying for all of them regardless. Now the full
+      // bucket is only fetched as a fallback, when the fast narrow search
+      // comes up empty — exactly when substring/typo matching is actually
+      // needed, and never when a plain prefix search would have worked.
+      const narrowFiles = [];
+      const broadFiles = [];
       for (const letter of letters) {
         for (const part of idx.letters[letter]) {
-          if (mayNeedFullBucket || partOverlapsPrefix(part, query)) {
-            partsToFetch.push(part.file);
-          }
+          (partOverlapsPrefix(part, query) ? narrowFiles : broadFiles).push(part.file);
         }
       }
 
-      const chunks = await Promise.all(
-        partsToFetch.map((file) => getChunk(dialectKey, file))
-      );
+      function findMatches(chunks) {
+        const seen = new Set();
+        const found = [];
+        for (const chunk of chunks) {
+          for (const entry of chunk) {
+            const wordLower = entry.word.toLowerCase();
+            let rank = matchRank(wordLower, query);
+            let viaSynonym = false;
 
-      // A later keystroke started a newer search — discard this stale result.
-      if (myRequestId !== requestId.current) {
-        return { results: [], stale: true };
-      }
-
-      const seen = new Set();
-      const matches = [];
-      for (const chunk of chunks) {
-        for (const entry of chunk) {
-          const wordLower = entry.word.toLowerCase();
-          let rank = matchRank(wordLower, query);
-          let viaSynonym = false;
-
-          if (rank === null) {
-            for (const s of entry.synonyms || []) {
-              const synRank = matchRank(s.toLowerCase(), query);
-              if (synRank !== null && (rank === null || synRank < rank)) {
-                rank = synRank;
-                viaSynonym = true;
+            if (rank === null) {
+              for (const s of entry.synonyms || []) {
+                const synRank = matchRank(s.toLowerCase(), query);
+                if (synRank !== null && (rank === null || synRank < rank)) {
+                  rank = synRank;
+                  viaSynonym = true;
+                }
               }
             }
-          }
-          if (rank === null) continue;
+            if (rank === null) continue;
 
-          if (seen.has(entry.word + '|' + (entry.pos || ''))) continue;
-          seen.add(entry.word + '|' + (entry.pos || ''));
-          matches.push({ ...entry, _rank: viaSynonym ? rank + 0.5 : rank });
+            const key = entry.word + '|' + (entry.pos || '');
+            if (seen.has(key)) continue;
+            seen.add(key);
+            found.push({ ...entry, _rank: viaSynonym ? rank + 0.5 : rank });
+          }
         }
+        found.sort((a, b) => {
+          if (a._rank !== b._rank) return a._rank - b._rank;
+          return a.word.localeCompare(b.word);
+        });
+        return found;
       }
 
-      matches.sort((a, b) => {
-        if (a._rank !== b._rank) return a._rank - b._rank;
-        return a.word.localeCompare(b.word);
-      });
+      const narrowChunks = await Promise.all(narrowFiles.map((f) => getChunk(dialectKey, f)));
+      if (myRequestId !== requestId.current) return { results: [], stale: true };
+
+      let matches = findMatches(narrowChunks);
+
+      if (matches.length === 0 && query.length >= 3 && broadFiles.length > 0) {
+        const broadChunks = await Promise.all(broadFiles.map((f) => getChunk(dialectKey, f)));
+        if (myRequestId !== requestId.current) return { results: [], stale: true };
+        matches = findMatches([...narrowChunks, ...broadChunks]);
+      }
 
       // Capping how many results are *shown* is a presentation concern
       // (typed searches cap at 60 to stay focused; browsing a whole
