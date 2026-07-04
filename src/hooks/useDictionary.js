@@ -56,7 +56,7 @@ async function getChunk(dialectKey, file) {
 /** Does a chunk part's [first,last] word range overlap with everything that
  * could start with `prefix`? Used to avoid fetching every part of a
  * multi-file letter bucket once the query narrows things down. */
-function partOverlapsPrefix(part, prefix) {
+export function partOverlapsPrefix(part, prefix) {
   if (!prefix) return true;
   const first = part.first.toLowerCase();
   const last = part.last.toLowerCase();
@@ -67,7 +67,7 @@ function partOverlapsPrefix(part, prefix) {
 // Cheap one-pass check for edit distance <= 1 (single insertion, deletion,
 // or substitution) — enough to catch a single typo without pulling in a
 // full Levenshtein matrix.
-function withinOneEdit(a, b) {
+export function withinOneEdit(a, b) {
   if (a === b) return true;
   const la = a.length;
   const lb = b.length;
@@ -98,7 +98,7 @@ function withinOneEdit(a, b) {
 
 // Ranks how a query matched an entry, used to sort exact/prefix hits above
 // looser substring or typo-tolerant ones. Lower is better; null means no match.
-function matchRank(word, query) {
+export function matchRank(word, query) {
   if (word === query) return 0;
   if (word.startsWith(query)) return 1;
   if (word.includes(query)) return 2;

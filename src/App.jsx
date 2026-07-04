@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useHashRoute } from './hooks/useHashRoute';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
+import { parseWordRoute } from './lib/wordRoute';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import UpdateToast from './components/UpdateToast';
@@ -30,12 +31,16 @@ export default function App() {
   const [theme, setTheme] = useTheme();
   const [route, navigate] = useHashRoute();
   const { needRefresh, applyUpdate } = useServiceWorkerUpdate();
+  // Only parsed on first render on purpose — Home seeds its own state
+  // from this once, then owns it; re-parsing on every route change would
+  // fight with the URL updates Home itself makes as the user searches.
+  const [initialWord] = useState(() => parseWordRoute(route));
 
   return (
     <div className="flex min-h-screen flex-col">
       <Header theme={theme} onThemeChange={setTheme} route={route} navigate={navigate} />
       <div className="flex-1">
-        {route === '/about' ? <About /> : <Home />}
+        {route === '/about' ? <About /> : <Home initialWord={initialWord} />}
       </div>
       <Footer navigate={navigate} />
       {needRefresh && <UpdateToast onUpdate={applyUpdate} />}

@@ -34,6 +34,7 @@ export default defineConfig({
         additionalManifestEntries: [
           { url: 'data/ku/index.json', revision: dataManifestRevision('ku') },
           { url: 'data/sor/index.json', revision: dataManifestRevision('sor') },
+          { url: 'data/zza/index.json', revision: dataManifestRevision('zza') },
         ],
         // This app is hash-routed (see useHashRoute.js), so it only ever
         // needs the offline navigation fallback for the bare root path.
@@ -82,10 +83,10 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'Ferheng — Kurmancî ⇄ Soranî Dictionary',
+        name: 'Ferheng — Kurdish Dictionary (Kurmancî, Soranî, Zazakî)',
         short_name: 'Ferheng',
         description:
-          'A free, offline Kurmancî and Soranî Kurdish dictionary with 453,000+ words.',
+          'A free, offline Kurmancî, Soranî, and Zazakî dictionary with 455,000+ words.',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
@@ -104,5 +105,9 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false,
+  },
+  test: {
+    environment: 'jsdom',
+    globals: false,
   },
 });

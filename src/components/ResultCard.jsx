@@ -1,5 +1,7 @@
 // src/components/ResultCard.jsx
+import { useState } from 'react';
 import { DIALECTS } from '../lib/kurdishAlphabet';
+import { buildWordRoute } from '../lib/wordRoute';
 
 const CROSS_FIELD = {
   ku: { key: 'sorani_equivalents', targetDialect: 'sor' },
@@ -24,15 +26,64 @@ function StarIcon({ filled, ...props }) {
   );
 }
 
+function ShareIcon(props) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="17"
+      height="17"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="m8.59 13.51 6.83 3.98M15.41 6.51 8.59 10.49" />
+    </svg>
+  );
+}
+
+function CheckIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
 export default function ResultCard({ entry, dialectKey, onTermClick, isFavorite, onToggleFavorite, style }) {
   const dialect = DIALECTS[dialectKey];
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}${window.location.pathname}#${buildWordRoute(dialectKey, entry.word)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard API unavailable (old browser, insecure context) — the
+      // address bar itself already reflects the link if this card is
+      // the active search result, so there's a fallback path either way.
+    }
+  };
+
+  // Not every dialect has a cross-referenced counterpart (Zazakî's data
+  // has no linked Kurmancî/Soranî equivalents), so this section is opt-in.
   const cross = CROSS_FIELD[dialectKey];
-  const crossWords = entry[cross.key] || [];
-  const targetDialect = DIALECTS[cross.targetDialect];
+  const crossWords = cross ? entry[cross.key] || [] : [];
+  const targetDialect = cross ? DIALECTS[cross.targetDialect] : null;
 
   return (
     <article
       style={style}
+      data-card
+      tabIndex={0}
+      aria-label={entry.pos_title ? `${entry.word}, ${entry.pos_title}` : entry.word}
       className="animate-card-in rounded-2xl border border-paper-border bg-paper-raised p-6 shadow-[0_1px_2px_rgba(20,23,31,0.05)] transition-shadow hover:shadow-md dark:border-ink-border dark:bg-ink-raised"
     >
       <header
@@ -47,20 +98,33 @@ export default function ResultCard({ entry, dialectKey, onTermClick, isFavorite,
             {entry.pos_title}
           </span>
         )}
-        {onToggleFavorite && (
+        <div className="ml-auto flex shrink-0 items-center gap-3">
           <button
-            onClick={() => onToggleFavorite(dialectKey, entry.word)}
-            aria-label={isFavorite ? 'Ji bijarte rake' : 'Têxe nav bijarte'}
-            aria-pressed={isFavorite}
-            className={`ml-auto shrink-0 transition-colors ${
-              isFavorite
-                ? 'text-roj'
-                : 'text-slate-light hover:text-roj dark:text-slate-dark dark:hover:text-roj'
+            onClick={handleShare}
+            aria-label={copied ? 'Girêdan hate kopîkirin' : 'Girêdana vê peyvê kopî bike'}
+            className={`transition-colors ${
+              copied
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-slate-light hover:text-roj-deep dark:text-slate-dark dark:hover:text-roj'
             }`}
           >
-            <StarIcon filled={isFavorite} />
+            {copied ? <CheckIcon /> : <ShareIcon />}
           </button>
-        )}
+          {onToggleFavorite && (
+            <button
+              onClick={() => onToggleFavorite(dialectKey, entry.word)}
+              aria-label={isFavorite ? 'Ji bijarte rake' : 'Têxe nav bijarte'}
+              aria-pressed={isFavorite}
+              className={`transition-colors ${
+                isFavorite
+                  ? 'text-roj'
+                  : 'text-slate-light hover:text-roj dark:text-slate-dark dark:hover:text-roj'
+              }`}
+            >
+              <StarIcon filled={isFavorite} />
+            </button>
+          )}
+        </div>
       </header>
 
       {entry.glosses && entry.glosses.length > 0 && (

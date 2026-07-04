@@ -15,6 +15,8 @@ export default function AlphabetRail({ dialect, activeLetter, onSelect, availabl
             key={letter}
             disabled={!isAvailable}
             onClick={() => onSelect(letter)}
+            aria-label={`Browse words starting with ${letter}`}
+            aria-pressed={isActive}
             className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg px-2 text-sm font-semibold transition-colors sm:h-9 sm:w-9 ${dialect.fontClass} ${
               isActive
                 ? 'bg-roj text-ink'

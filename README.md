@@ -1,12 +1,13 @@
-# Ferheng — Kurmancî ⇄ Soranî Dictionary
+# Ferheng — Kurdish Dictionary (Kurmancî, Soranî, Zazakî)
 
-A static, zero-backend Kurdish dictionary web app. 453,574 words (447,139
-Kurmancî + 6,435 Soranî), served entirely as pre-chunked static JSON —
-no database, no API server, no monthly cost.
+A static, zero-backend Kurdish dictionary web app. 455,963 words (447,139
+Kurmancî + 6,435 Soranî + 2,389 Zazakî), served entirely as pre-chunked
+static JSON — no database, no API server, no monthly cost.
 
 Word data: [Wîkîferheng](https://ku.wiktionary.org) (Kurdish Wiktionary),
 via the [kaikki.org/kuwiktionary](https://kaikki.org/kuwiktionary/index.html)
-structured extraction. Licensed CC BY-SA 4.0 + GFDL.
+structured extraction (this covers all three dialects — Zazakî entries
+live on the same wiki). Licensed CC BY-SA 4.0 + GFDL.
 
 ## Run locally
 
@@ -29,6 +30,10 @@ public/data/
   sor/           Soranî — 6,435 words, 65 files, ~0.9MB
     index.json
     ک-1.json
+    ...
+  zza/           Zazakî — 2,389 words, 33 files, ~0.2MB
+    index.json
+    a-1.json
     ...
 ```
 

@@ -3,7 +3,7 @@ import { forwardRef } from 'react';
 import RojDisc from './RojDisc';
 
 const SearchBar = forwardRef(function SearchBar(
-  { value, onChange, dialect, autoFocus, loading = false },
+  { value, onChange, dialect, autoFocus, loading = false, onKeyDown },
   ref
 ) {
   return (
@@ -26,7 +26,9 @@ const SearchBar = forwardRef(function SearchBar(
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={onKeyDown}
         placeholder={dialect.placeholder}
+        aria-label={`Search ${dialect.nativeLabel}`}
         autoFocus={autoFocus}
         dir={dialect.dir}
         spellCheck={false}

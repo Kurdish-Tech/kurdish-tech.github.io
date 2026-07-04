@@ -1,8 +1,10 @@
 // src/components/OfflineDownload.jsx
 import { useOfflineDownload } from '../hooks/useOfflineDownload';
 
-function formatMB(bytes) {
-  return (bytes / (1024 * 1024)).toFixed(0);
+function formatSize(bytes) {
+  const mb = bytes / (1024 * 1024);
+  if (mb < 1) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`;
 }
 
 export default function OfflineDownload({ dialect, manifest }) {
@@ -44,7 +46,7 @@ export default function OfflineDownload({ dialect, manifest }) {
         onClick={download}
         className="text-xs font-medium text-slate-light underline decoration-dotted underline-offset-2 transition-colors hover:text-roj-deep dark:text-slate-dark dark:hover:text-roj-soft"
       >
-        Daxistina {dialect.nativeLabel} bo karanîna bêînternetê ({formatMB(manifest.total_bytes)} MB)
+        Daxistina {dialect.nativeLabel} bo karanîna bêînternetê ({formatSize(manifest.total_bytes)})
       </button>
       {status === 'error' && (
         <p className="text-xs text-roj-deep dark:text-roj-soft">

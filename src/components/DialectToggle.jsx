@@ -16,13 +16,13 @@ export default function DialectToggle({ active, onChange }) {
             role="tab"
             aria-selected={isActive}
             onClick={() => onChange(d.key)}
-            className={`relative rounded-full px-5 py-2 text-sm font-semibold transition-colors duration-200 ${
+            className={`relative rounded-full px-3 py-1.5 text-xs font-semibold transition-colors duration-200 sm:px-5 sm:py-2 sm:text-sm ${
               isActive
                 ? 'bg-roj text-ink shadow-sm'
                 : 'text-slate-light hover:text-ink dark:text-slate-dark dark:hover:text-paper'
             }`}
           >
-            <span className={d.key === 'sor' ? 'font-arabic' : ''}>
+            <span className={d.fontClass === 'font-arabic' ? 'font-arabic' : ''}>
               {d.nativeLabel}
             </span>
           </button>

@@ -12,9 +12,24 @@ import ResultCard from './components/ResultCard';
 import LinkButton from './components/LinkButton';
 import OfflineDownload from './components/OfflineDownload';
 import Pagination from './components/Pagination';
+import TipsBanner from './components/TipsBanner';
+import { buildWordRoute } from './lib/wordRoute';
 
 const GITHUB_ORG_URL = 'https://github.com/Kurdish-Tech';
 const KEYBOARD_URL = 'https://kurdish-tech.github.io/kurdish-kurmanci-keyboard-layout/';
+
+// Proper ISO codes for the <html lang> attribute — screen readers use
+// this to pick pronunciation, and it differs from our internal dialect
+// keys for Soranî (Wiktionary/our own code is "sor", but the actual ISO
+// 639-1 code for Central Kurdish is "ckb").
+const HTML_LANG = { ku: 'ku', sor: 'ckb', zza: 'zza' };
+
+function focusCardAt(container, index) {
+  const cards = container?.querySelectorAll('[data-card]');
+  if (!cards || cards.length === 0) return;
+  const clamped = Math.max(0, Math.min(cards.length - 1, index));
+  cards[clamped].focus();
+}
 
 // A typed search stays capped and fast — it's about finding one specific
 // word, so showing more than a page of matches would just be noise.
@@ -23,9 +38,9 @@ const KEYBOARD_URL = 'https://kurdish-tech.github.io/kurdish-kurmanci-keyboard-l
 const SEARCH_RESULT_CAP = 60;
 const BROWSE_PAGE_SIZE = 60;
 
-export default function Home() {
-  const [dialectKey, setDialectKey] = useState('ku');
-  const [query, setQuery] = useState('');
+export default function Home({ initialWord }) {
+  const [dialectKey, setDialectKey] = useState(() => initialWord?.dialectKey || 'ku');
+  const [query, setQuery] = useState(() => initialWord?.word || '');
   const debouncedQuery = useDebouncedValue(query, 180);
 
   const [results, setResults] = useState([]);
@@ -36,15 +51,30 @@ export default function Home() {
   const dialect = DIALECTS[dialectKey];
   const { manifest, manifestError, search } = useDictionary(dialectKey);
   const inputRef = useRef(null);
+  const resultsRef = useRef(null);
   const recentSearches = useRecentSearches();
   const favorites = useFavorites();
   const { add: addRecentSearch } = recentSearches;
+
+  useEffect(() => {
+    document.documentElement.lang = HTML_LANG[dialectKey] || 'ku';
+    return () => {
+      document.documentElement.lang = 'ku';
+    };
+  }, [dialectKey]);
 
   const runSearch = useCallback(
     async (q) => {
       if (!q.trim()) {
         setResults([]);
         setStatus('idle');
+        // Clearing the search (the "×" button, or deleting it by hand)
+        // should drop any word-link hash too — otherwise a reload right
+        // after clearing would re-seed the search from the stale URL
+        // instead of actually starting empty.
+        if (window.location.hash && window.location.hash !== '#/') {
+          window.history.replaceState(null, '', '#/');
+        }
         return;
       }
       setStatus('loading');
@@ -57,6 +87,14 @@ export default function Home() {
         // keystrokes-in-progress would otherwise flood recent history.
         if (r.length > 0 && r[0]._rank === 0) {
           addRecentSearch(dialectKey, r[0].word);
+          // Sync the address bar so the current word is shareable/
+          // bookmarkable. replaceState (not a real hash navigation) on
+          // purpose — it doesn't fire 'hashchange', so it can't loop back
+          // into useHashRoute or spam back-button history on every search.
+          const shareableHash = '#' + buildWordRoute(dialectKey, r[0].word);
+          if (window.location.hash !== shareableHash) {
+            window.history.replaceState(null, '', shareableHash);
+          }
         }
       } catch (err) {
         setErrorMessage(err.message || 'Something went wrong loading that data.');
@@ -105,6 +143,34 @@ export default function Home() {
     document.documentElement.scrollTop = 0;
   };
 
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'ArrowDown' && visibleResults.length > 0) {
+      e.preventDefault();
+      focusCardAt(resultsRef.current, 0);
+    }
+  };
+
+  const handleResultsKeyDown = (e) => {
+    const container = resultsRef.current;
+    if (!container) return;
+    const cards = Array.from(container.querySelectorAll('[data-card]'));
+    const currentIndex = cards.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusCardAt(container, currentIndex + 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (currentIndex <= 0) inputRef.current?.focus();
+      else focusCardAt(container, currentIndex - 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      focusCardAt(container, 0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      focusCardAt(container, cards.length - 1);
+    }
+  };
+
   return (
     <div>
       <div className="relative overflow-hidden">
@@ -122,10 +188,10 @@ export default function Home() {
               mobile the on-screen keyboard doesn't push results out of
               view — the user shouldn't need to scroll or dismiss the
               keyboard just to see the first result. */}
-          {!query && (
+          {!query ? (
             <>
               <h1 className="mb-3 animate-rise-in font-display text-3xl font-medium leading-tight tracking-tight text-ink dark:text-paper sm:text-5xl">
-                453.000 Peyvên Kurdî,
+                455.000 Peyvên Kurdî,
                 <br />
                 Ferhenga Herî Mezin
               </h1>
@@ -136,6 +202,12 @@ export default function Home() {
                 Li peyvên Kurmancî û Soranî bigere. Bê daxistin, bi lez û hêsan.
               </p>
             </>
+          ) : (
+            // The visual hero (including its <h1>) is hidden while
+            // actively typing/browsing to save space, but the document
+            // should still always have exactly one <h1> for screen
+            // readers and SEO.
+            <h1 className="sr-only">Ferheng — Kurdish Dictionary</h1>
           )}
 
           <div className="mb-4 flex animate-rise-in justify-center" style={{ animationDelay: '100ms' }}>
@@ -147,6 +219,7 @@ export default function Home() {
               ref={inputRef}
               value={query}
               onChange={setQuery}
+              onKeyDown={handleSearchKeyDown}
               dialect={dialect}
               loading={status === 'loading'}
               autoFocus
@@ -217,6 +290,8 @@ export default function Home() {
               </div>
             )}
 
+            <TipsBanner />
+
             {favorites.list.length > 0 && (
               <div className="w-full max-w-2xl">
                 <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-light dark:text-slate-dark">
@@ -281,7 +356,11 @@ export default function Home() {
               </p>
             )}
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div
+              ref={resultsRef}
+              onKeyDown={handleResultsKeyDown}
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+            >
               {visibleResults.map((entry, i) => (
                 <ResultCard
                   key={entry.word + i}
