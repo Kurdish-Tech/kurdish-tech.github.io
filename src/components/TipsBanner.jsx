@@ -4,9 +4,9 @@ import { useState } from 'react';
 const STORAGE_KEY = 'ferheng-tips-dismissed';
 
 const TIPS = [
-  'Nizane rastnivîsê bi tevahî? Nivîsîna nêzîk jî têrê dike.',
+  'Nizane rastnivîsê gotinê bi tevahî? Nivîsîna nêzîk jî binivise wê derkeve.',
   'Tîpekê hilbijêre da ku hemû peyvên wê tîpê bibînî.',
-  'Bêînternet jî dixebite — li jêr "daxistin" hilbijêre.',
+  'Bêînternet jî ti dikare bikarbîne ferheng — li lor "daxistin" hilbijêre.',
 ];
 
 // Several real capabilities (fuzzy search, full alphabetical browsing,
