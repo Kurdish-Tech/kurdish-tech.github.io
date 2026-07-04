@@ -11,9 +11,17 @@ import AlphabetRail from './components/AlphabetRail';
 import ResultCard from './components/ResultCard';
 import LinkButton from './components/LinkButton';
 import OfflineDownload from './components/OfflineDownload';
+import Pagination from './components/Pagination';
 
 const GITHUB_ORG_URL = 'https://github.com/Kurdish-Tech';
 const KEYBOARD_URL = 'https://kurdish-tech.github.io/kurdish-kurmanci-keyboard-layout/';
+
+// A typed search stays capped and fast — it's about finding one specific
+// word, so showing more than a page of matches would just be noise.
+// Clicking a single letter in the AlphabetRail means "let me browse this
+// whole letter," so that path paginates through everything instead.
+const SEARCH_RESULT_CAP = 60;
+const BROWSE_PAGE_SIZE = 60;
 
 export default function Home() {
   const [dialectKey, setDialectKey] = useState('ku');
@@ -21,10 +29,9 @@ export default function Home() {
   const debouncedQuery = useDebouncedValue(query, 180);
 
   const [results, setResults] = useState([]);
-  const [truncated, setTruncated] = useState(false);
-  const [totalMatches, setTotalMatches] = useState(0);
   const [status, setStatus] = useState('idle'); // idle | loading | ready | error
   const [errorMessage, setErrorMessage] = useState('');
+  const [page, setPage] = useState(0);
 
   const dialect = DIALECTS[dialectKey];
   const { manifest, manifestError, search } = useDictionary(dialectKey);
@@ -42,11 +49,9 @@ export default function Home() {
       }
       setStatus('loading');
       try {
-        const { results: r, truncated: t, totalMatches: tm, stale } = await search(q);
+        const { results: r, stale } = await search(q);
         if (stale) return;
         setResults(r);
-        setTruncated(t);
-        setTotalMatches(tm || r.length);
         setStatus('ready');
         // Only remember fully-typed, exact-match searches — partial
         // keystrokes-in-progress would otherwise flood recent history.
@@ -62,6 +67,7 @@ export default function Home() {
   );
 
   useEffect(() => {
+    setPage(0);
     runSearch(debouncedQuery);
   }, [debouncedQuery, dialectKey, runSearch]);
 
@@ -83,6 +89,21 @@ export default function Home() {
 
   const availableLetters = manifest ? new Set(Object.keys(manifest.letters)) : null;
   const activeLetter = query.length === 1 ? query.toLowerCase() : null;
+
+  // Clicking a single letter means "browse this whole letter" — paginate
+  // through every match instead of the tight cap a typed search gets.
+  const isBrowsing = activeLetter !== null;
+  const pageSize = isBrowsing ? BROWSE_PAGE_SIZE : SEARCH_RESULT_CAP;
+  const pageCount = Math.max(1, Math.ceil(results.length / pageSize));
+  const visibleResults = isBrowsing
+    ? results.slice(page * pageSize, (page + 1) * pageSize)
+    : results.slice(0, pageSize);
+  const searchTruncated = !isBrowsing && results.length > pageSize;
+
+  const handlePageChange = (nextPage) => {
+    setPage(nextPage);
+    document.documentElement.scrollTop = 0;
+  };
 
   return (
     <div>
@@ -161,7 +182,7 @@ export default function Home() {
       <main className="mx-auto max-w-5xl px-6 pb-16">
         <div
           className={`mb-8 overflow-hidden rounded-2xl border border-paper-border bg-paper-raised/60 p-3 dark:border-ink-border dark:bg-ink-raised/60 sm:p-4 ${
-            query ? 'hidden sm:block' : ''
+            query && !isBrowsing ? 'hidden sm:block' : ''
           }`}
         >
           <AlphabetRail
@@ -250,8 +271,18 @@ export default function Home() {
 
         {results.length > 0 && (
           <>
+            {isBrowsing && (
+              <p className="mb-4 text-center text-sm text-slate-light dark:text-slate-dark">
+                {results.length.toLocaleString()} peyvên {dialect.nativeLabel} bi{' '}
+                <span className={`font-semibold text-ink dark:text-paper ${dialect.fontClass}`}>
+                  "{activeLetter}"
+                </span>{' '}
+                dest pê dikin
+              </p>
+            )}
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {results.map((entry, i) => (
+              {visibleResults.map((entry, i) => (
                 <ResultCard
                   key={entry.word + i}
                   entry={entry}
@@ -265,10 +296,15 @@ export default function Home() {
                 />
               ))}
             </div>
-            {truncated && (
-              <p className="mt-6 text-center text-sm text-slate-light dark:text-slate-dark">
-                Showing 60 of {totalMatches.toLocaleString()} matches — keep typing to narrow it down.
-              </p>
+
+            {isBrowsing ? (
+              <Pagination page={page} pageCount={pageCount} onChange={handlePageChange} dir={dialect.dir} />
+            ) : (
+              searchTruncated && (
+                <p className="mt-6 text-center text-sm text-slate-light dark:text-slate-dark">
+                  Showing {SEARCH_RESULT_CAP} of {results.length.toLocaleString()} matches — keep typing to narrow it down.
+                </p>
+              )
             )}
           </>
         )}

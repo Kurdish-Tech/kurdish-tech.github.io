@@ -138,7 +138,7 @@ export function useDictionary(dialectKey) {
     async (rawQuery) => {
       const myRequestId = ++requestId.current;
       const query = rawQuery.trim().toLowerCase();
-      if (!query) return { results: [], truncated: false, stale: false };
+      if (!query) return { results: [], stale: false };
 
       const idx = await getIndex(dialectKey);
       const firstChar = query[0];
@@ -168,7 +168,7 @@ export function useDictionary(dialectKey) {
 
       // A later keystroke started a newer search — discard this stale result.
       if (myRequestId !== requestId.current) {
-        return { results: [], truncated: false, stale: true };
+        return { results: [], stale: true };
       }
 
       const seen = new Set();
@@ -201,13 +201,11 @@ export function useDictionary(dialectKey) {
         return a.word.localeCompare(b.word);
       });
 
-      const MAX_RESULTS = 60;
-      return {
-        results: matches.slice(0, MAX_RESULTS),
-        truncated: matches.length > MAX_RESULTS,
-        totalMatches: matches.length,
-        stale: false,
-      };
+      // Capping how many results are *shown* is a presentation concern
+      // (typed searches cap at 60 to stay focused; browsing a whole
+      // letter paginates through everything) — the hook's job is just to
+      // find every match and hand back the full list.
+      return { results: matches, stale: false };
     },
     [dialectKey]
   );
