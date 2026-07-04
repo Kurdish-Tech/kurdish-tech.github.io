@@ -228,12 +228,6 @@ export default function Home({ initialWord }) {
 
           {!query && (
             <>
-              {manifest && (
-                <p className="mt-3 text-xs text-slate-light dark:text-slate-dark">
-                  {manifest.total_words.toLocaleString()} {dialect.nativeLabel} entries indexed
-                </p>
-              )}
-
               <OfflineDownload dialect={dialect} manifest={manifest} />
 
               <div
