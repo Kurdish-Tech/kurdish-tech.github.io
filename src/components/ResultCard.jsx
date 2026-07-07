@@ -3,9 +3,17 @@ import { useState } from 'react';
 import { DIALECTS } from '../lib/kurdishAlphabet';
 import { buildWordRoute } from '../lib/wordRoute';
 
-const CROSS_FIELD = {
-  ku: { key: 'sorani_equivalents', targetDialect: 'sor' },
-  sor: { key: 'kurmanci_equivalents', targetDialect: 'ku' },
+// A dialect can cross-reference more than one other dialect at once —
+// Zazakî's data links to both Kurmancî and Soranî independently, unlike
+// ku/sor which only ever point at each other — so this is a list per
+// dialect, not a single field.
+const CROSS_FIELDS = {
+  ku: [{ key: 'sorani_equivalents', targetDialect: 'sor' }],
+  sor: [{ key: 'kurmanci_equivalents', targetDialect: 'ku' }],
+  zza: [
+    { key: 'kurmanci_equivalents', targetDialect: 'ku' },
+    { key: 'sorani_equivalents', targetDialect: 'sor' },
+  ],
 };
 
 function StarIcon({ filled, ...props }) {
@@ -72,11 +80,9 @@ export default function ResultCard({ entry, dialectKey, onTermClick, isFavorite,
     }
   };
 
-  // Not every dialect has a cross-referenced counterpart (Zazakî's data
-  // has no linked Kurmancî/Soranî equivalents), so this section is opt-in.
-  const cross = CROSS_FIELD[dialectKey];
-  const crossWords = cross ? entry[cross.key] || [] : [];
-  const targetDialect = cross ? DIALECTS[cross.targetDialect] : null;
+  const crossRows = (CROSS_FIELDS[dialectKey] || [])
+    .map((cross) => ({ ...cross, words: entry[cross.key] || [] }))
+    .filter((row) => row.words.length > 0);
 
   return (
     <article
@@ -178,25 +184,29 @@ export default function ResultCard({ entry, dialectKey, onTermClick, isFavorite,
         </div>
       )}
 
-      {crossWords.length > 0 && (
-        <div
-          dir={targetDialect.dir}
-          className="flex flex-wrap items-center gap-1.5 border-t border-paper-border pt-3 dark:border-ink-border"
-        >
-          <span className="text-xs font-medium uppercase tracking-wide text-zagros-deep dark:text-zagros-soft">
-            {targetDialect.nativeLabel} →
-          </span>
-          {crossWords.map((w) => (
-            <button
-              key={w}
-              onClick={() => onTermClick(cross.targetDialect, w)}
-              className={`rounded-full border border-zagros/30 bg-zagros/10 px-2.5 py-1 text-sm text-zagros-deep transition-colors hover:bg-zagros/20 dark:border-zagros/40 dark:bg-zagros/15 dark:text-zagros-soft ${targetDialect.fontClass}`}
-            >
-              {w}
-            </button>
-          ))}
-        </div>
-      )}
+      {crossRows.map((row) => {
+        const targetDialect = DIALECTS[row.targetDialect];
+        return (
+          <div
+            key={row.targetDialect}
+            dir={targetDialect.dir}
+            className="flex flex-wrap items-center gap-1.5 border-t border-paper-border pt-3 first:mt-0 [&:not(:first-child)]:mt-2 dark:border-ink-border"
+          >
+            <span className="text-xs font-medium uppercase tracking-wide text-zagros-deep dark:text-zagros-soft">
+              {targetDialect.nativeLabel} →
+            </span>
+            {row.words.map((w) => (
+              <button
+                key={w}
+                onClick={() => onTermClick(row.targetDialect, w)}
+                className={`rounded-full border border-zagros/30 bg-zagros/10 px-2.5 py-1 text-sm text-zagros-deep transition-colors hover:bg-zagros/20 dark:border-zagros/40 dark:bg-zagros/15 dark:text-zagros-soft ${targetDialect.fontClass}`}
+              >
+                {w}
+              </button>
+            ))}
+          </div>
+        );
+      })}
     </article>
   );
 }

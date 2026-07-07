@@ -191,7 +191,7 @@ export default function Home({ initialWord }) {
           {!query ? (
             <>
               <h1 className="mb-3 animate-rise-in font-display text-3xl font-medium leading-tight tracking-tight text-ink dark:text-paper sm:text-5xl">
-                455.000 Peyvên Kurdî,
+                456.000 Peyvên Kurdî,
                 <br />
                 Ferhenga Herî Mezin
               </h1>
@@ -228,6 +228,12 @@ export default function Home({ initialWord }) {
 
           {!query && (
             <>
+              {manifest && (
+                <p className="mt-3 text-xs text-slate-light dark:text-slate-dark">
+                  {manifest.total_words.toLocaleString()} peyvên {dialect.nativeLabel} tomar bûne
+                </p>
+              )}
+
               <OfflineDownload dialect={dialect} manifest={manifest} />
 
               <div

@@ -86,7 +86,7 @@ export default defineConfig({
         name: 'Ferheng — Kurdish Dictionary (Kurmancî, Soranî, Zazakî)',
         short_name: 'Ferheng',
         description:
-          'A free, offline Kurmancî, Soranî, and Zazakî dictionary with 455,000+ words.',
+          'A free, offline Kurmancî, Soranî, and Zazakî dictionary with 456,000+ words.',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',

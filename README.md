@@ -1,13 +1,17 @@
 # Ferheng — Kurdish Dictionary (Kurmancî, Soranî, Zazakî)
 
-A static, zero-backend Kurdish dictionary web app. 455,963 words (447,139
-Kurmancî + 6,435 Soranî + 2,389 Zazakî), served entirely as pre-chunked
+A static, zero-backend Kurdish dictionary web app. 456,639 words (447,139
+Kurmancî + 6,435 Soranî + 3,065 Zazakî), served entirely as pre-chunked
 static JSON — no database, no API server, no monthly cost.
 
-Word data: [Wîkîferheng](https://ku.wiktionary.org) (Kurdish Wiktionary),
-via the [kaikki.org/kuwiktionary](https://kaikki.org/kuwiktionary/index.html)
-structured extraction (this covers all three dialects — Zazakî entries
-live on the same wiki). Licensed CC BY-SA 4.0 + GFDL.
+Word data: [Wîkîferheng](https://ku.wiktionary.org) (Kurdish Wiktionary)
+for Kurmancî and Soranî, via the
+[kaikki.org/kuwiktionary](https://kaikki.org/kuwiktionary/index.html)
+structured extraction. Zazakî is parsed directly from the
+[diq.wiktionary.org](https://diq.wiktionary.org) XML dump (its own
+dedicated wiki — kaikki.org has no structured extraction for it, so
+that one's parsed straight from raw wikitext; see the "known
+limitations" note below). Licensed CC BY-SA 4.0 + GFDL.
 
 ## Run locally
 
@@ -31,7 +35,7 @@ public/data/
     index.json
     ک-1.json
     ...
-  zza/           Zazakî — 2,389 words, 33 files, ~0.2MB
+  zza/           Zazakî — 3,065 words, 32 files, ~0.3MB
     index.json
     a-1.json
     ...
@@ -88,8 +92,24 @@ free-text search reaches everything regardless of script.
   Wiktionary's own data — most entries don't have a cross-dialect link yet
   (only ~888 Kurmancî entries do), because that's genuinely how complete
   the upstream source is right now, not something this app is hiding.
-- Search is prefix-based, not fuzzy — typing "kurdi" won't currently find
-  "tkurdi" for typos. Worth adding if this gets real usage.
+- Search matches by prefix, substring, and single-typo tolerance, but only
+  within words that share the query's first letter (typing "rman" won't
+  find "kurmancî" — the search only looks in the bucket for words starting
+  with "r"). Matching a substring anywhere in the word regardless of its
+  actual first letter would mean searching every letter bucket on every
+  keystroke, which isn't worth the bandwidth cost for how rarely it'd help.
+- Zazakî is parsed straight from diq.wiktionary.org's raw wikitext with a
+  hand-rolled parser (see the dump-parsing note above) rather than a full
+  wikitext engine — nested templates aren't expanded. Audited after
+  building: 1 entry (out of 3,065) has stray leftover quote-marks in its
+  gloss from a word whose own spelling contains an apostrophe, colliding
+  with wikitext's bold/italic syntax; everything else checked clean (no
+  unparsed templates/links, no empty or punctuation-only glosses, no
+  duplicate entries). About 1,520 Zazakî headwords were skipped entirely
+  for having neither a written gloss nor any Kurmancî/Soranî/Arabic
+  translation to fall back on (they exist on the wiki with only a
+  Turkish/German/etc. translation, which isn't useful in a
+  Kurdish-focused dictionary).
 - Fonts (Fraunces / Manrope / Noto Naskh Arabic) load from Google Fonts.
   If you need a fully offline-capable build, self-host those three font
   files under `public/fonts/` and update the `@font-face` rules — the app
