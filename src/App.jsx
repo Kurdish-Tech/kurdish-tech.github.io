@@ -3,11 +3,14 @@ import { useState, useEffect } from 'react';
 import { useHashRoute } from './hooks/useHashRoute';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
 import { parseWordRoute } from './lib/wordRoute';
+import { isTauri } from './lib/platform';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import UpdateToast from './components/UpdateToast';
+import DesktopDownloadToast from './components/DesktopDownloadToast';
 import Home from './Home';
 import About from './About';
+import Download from './Download';
 
 function useTheme() {
   const [theme, setTheme] = useState(() => {
@@ -22,6 +25,16 @@ function useTheme() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
     localStorage.setItem('ferheng-theme', theme);
+
+    // Keep the native window chrome (Windows/macOS title bar) in sync
+    // with the in-app theme — the desktop window starts in dark mode by
+    // default (see src-tauri/tauri.conf.json), but should follow the
+    // user's actual choice once the app has mounted.
+    if (isTauri) {
+      import('@tauri-apps/api/window')
+        .then(({ getCurrentWindow }) => getCurrentWindow().setTheme(theme))
+        .catch(() => {});
+    }
   }, [theme]);
 
   return [theme, setTheme];
@@ -40,10 +53,17 @@ export default function App() {
     <div className="flex min-h-screen flex-col">
       <Header theme={theme} onThemeChange={setTheme} route={route} navigate={navigate} />
       <div className="flex-1">
-        {route === '/about' ? <About /> : <Home initialWord={initialWord} />}
+        {route === '/about' ? (
+          <About navigate={navigate} />
+        ) : route === '/download' ? (
+          <Download navigate={navigate} />
+        ) : (
+          <Home initialWord={initialWord} />
+        )}
       </div>
       <Footer navigate={navigate} />
       {needRefresh && <UpdateToast onUpdate={applyUpdate} />}
+      <DesktopDownloadToast navigate={navigate} />
     </div>
   );
 }

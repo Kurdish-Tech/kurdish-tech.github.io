@@ -1,6 +1,7 @@
 // src/About.jsx
 import RojDisc from './components/RojDisc';
 import LinkButton from './components/LinkButton';
+import BackHomeButton from './components/BackHomeButton';
 
 const GITHUB_ORG_URL = 'https://github.com/Kurdish-Tech';
 
@@ -17,9 +18,11 @@ function Section({ title, children }) {
   );
 }
 
-export default function About() {
+export default function About({ navigate }) {
   return (
     <main className="mx-auto max-w-2xl px-6 pb-20 pt-10 sm:pt-16">
+      <BackHomeButton navigate={navigate} />
+
       <div className="mb-8 flex justify-center animate-rise-in">
         <RojDisc size={48} rayCount={12} className="text-roj" />
       </div>

@@ -63,7 +63,7 @@ function CheckIcon(props) {
   );
 }
 
-export default function ResultCard({ entry, dialectKey, onTermClick, isFavorite, onToggleFavorite, style }) {
+export default function ResultCard({ entry, dialectKey, onTermClick, isFavorite, onToggleFavorite, showDialectBadge, style }) {
   const dialect = DIALECTS[dialectKey];
   const [copied, setCopied] = useState(false);
 
@@ -102,6 +102,14 @@ export default function ResultCard({ entry, dialectKey, onTermClick, isFavorite,
         {entry.pos_title && (
           <span className="rounded-full bg-roj/15 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-roj-deep dark:bg-roj/20 dark:text-roj-soft">
             {entry.pos_title}
+          </span>
+        )}
+        {showDialectBadge && (
+          <span
+            dir="ltr"
+            className="rounded-full border border-paper-border px-2.5 py-0.5 text-xs font-medium text-slate-light dark:border-ink-border dark:text-slate-dark"
+          >
+            {dialect.nativeLabel}
           </span>
         )}
         <div className="ml-auto flex shrink-0 items-center gap-3">

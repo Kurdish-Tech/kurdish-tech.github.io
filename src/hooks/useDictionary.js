@@ -53,6 +53,29 @@ async function getChunk(dialectKey, file) {
   return data;
 }
 
+/**
+ * Fetches one exact entry from a given dialect, regardless of which
+ * dialect (if any) is the currently "active" one in the UI — used by the
+ * Arabic reverse-search, which can point at entries in any of the three
+ * dialects at once. Reuses the same index/chunk caches as normal search,
+ * so looking up a word that a regular search already touched is free.
+ */
+export async function findEntry(dialectKey, word) {
+  const idx = await getIndex(dialectKey);
+  const wordLower = word.toLowerCase();
+  const firstChar = wordLower[0];
+  const letters = candidateLetters(dialectKey, firstChar).filter((l) => idx.letters[l]);
+  for (const letter of letters) {
+    for (const part of idx.letters[letter]) {
+      if (!partOverlapsPrefix(part, wordLower)) continue;
+      const chunk = await getChunk(dialectKey, part.file);
+      const found = chunk.find((e) => e.word.toLowerCase() === wordLower);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 /** Does a chunk part's [first,last] word range overlap with everything that
  * could start with `prefix`? Used to avoid fetching every part of a
  * multi-file letter bucket once the query narrows things down. */

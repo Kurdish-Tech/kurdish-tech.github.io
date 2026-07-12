@@ -110,4 +110,19 @@ export default defineConfig({
     environment: 'jsdom',
     globals: false,
   },
+  // Tauri-recommended dev-server settings — harmless for the plain web
+  // dev server, but required for `tauri dev` to work correctly: it loads
+  // a fixed devUrl (see src-tauri/tauri.conf.json), so the port must
+  // never silently auto-increment; watching src-tauri would otherwise
+  // trigger frontend reloads on every Rust file save; clearScreen would
+  // hide Cargo's build errors, which print to this same terminal.
+  clearScreen: false,
+  server: {
+    host: 'localhost',
+    port: 3001,
+    strictPort: true,
+    watch: {
+      ignored: ['**/src-tauri/**'],
+    },
+  },
 });

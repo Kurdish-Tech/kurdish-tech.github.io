@@ -9,14 +9,15 @@ import SearchBar from './components/SearchBar';
 import DialectToggle from './components/DialectToggle';
 import AlphabetRail from './components/AlphabetRail';
 import ResultCard from './components/ResultCard';
-import LinkButton from './components/LinkButton';
 import OfflineDownload from './components/OfflineDownload';
 import Pagination from './components/Pagination';
 import TipsBanner from './components/TipsBanner';
+import ArabicSearchToggle from './components/ArabicSearchToggle';
 import { buildWordRoute } from './lib/wordRoute';
+import { useArabicReverseSearch } from './hooks/useArabicReverseSearch';
+import { looksLikeArabic } from './lib/arabicNormalize';
 
-const GITHUB_ORG_URL = 'https://github.com/Kurdish-Tech';
-const KEYBOARD_URL = 'https://kurdish-tech.github.io/kurdish-kurmanci-keyboard-layout/';
+const ARABIC_ENABLED_KEY = 'ferheng-arabic-search-enabled';
 
 // Proper ISO codes for the <html lang> attribute — screen readers use
 // this to pick pronunciation, and it differs from our internal dialect
@@ -48,6 +49,12 @@ export default function Home({ initialWord }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [page, setPage] = useState(0);
 
+  const [arabicEnabled, setArabicEnabled] = useState(
+    () => localStorage.getItem(ARABIC_ENABLED_KEY) === '1'
+  );
+  const [arabicResults, setArabicResults] = useState([]);
+  const { search: searchArabic } = useArabicReverseSearch();
+
   const dialect = DIALECTS[dialectKey];
   const { manifest, manifestError, search } = useDictionary(dialectKey);
   const inputRef = useRef(null);
@@ -55,6 +62,12 @@ export default function Home({ initialWord }) {
   const recentSearches = useRecentSearches();
   const favorites = useFavorites();
   const { add: addRecentSearch } = recentSearches;
+
+  const handleArabicToggle = (next) => {
+    setArabicEnabled(next);
+    localStorage.setItem(ARABIC_ENABLED_KEY, next ? '1' : '0');
+    if (!next) setArabicResults([]);
+  };
 
   useEffect(() => {
     document.documentElement.lang = HTML_LANG[dialectKey] || 'ku';
@@ -108,6 +121,20 @@ export default function Home({ initialWord }) {
     setPage(0);
     runSearch(debouncedQuery);
   }, [debouncedQuery, dialectKey, runSearch]);
+
+  useEffect(() => {
+    if (!arabicEnabled || !looksLikeArabic(debouncedQuery)) {
+      setArabicResults([]);
+      return;
+    }
+    let cancelled = false;
+    searchArabic(debouncedQuery).then(({ results: r, stale }) => {
+      if (!cancelled && !stale) setArabicResults(r);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedQuery, arabicEnabled, searchArabic]);
 
   const handleDialectChange = (key) => {
     setDialectKey(key);
@@ -228,6 +255,10 @@ export default function Home({ initialWord }) {
 
           {!query && (
             <>
+              <div className="mt-4">
+                <ArabicSearchToggle enabled={arabicEnabled} onToggle={handleArabicToggle} />
+              </div>
+
               {manifest && (
                 <p className="mt-3 text-xs text-slate-light dark:text-slate-dark">
                   {manifest.total_words.toLocaleString()} peyvên {dialect.nativeLabel} tomar bûne
@@ -235,18 +266,6 @@ export default function Home({ initialWord }) {
               )}
 
               <OfflineDownload dialect={dialect} manifest={manifest} />
-
-              <div
-                className="mt-6 flex animate-rise-in flex-wrap items-center justify-center gap-2 sm:mt-7 sm:gap-3"
-                style={{ animationDelay: '180ms' }}
-              >
-                <LinkButton href={GITHUB_ORG_URL} icon="code" shortLabel="GitHub">
-                  Rêxistina Me li GitHub
-                </LinkButton>
-                <LinkButton href={KEYBOARD_URL} icon="keyboard" shortLabel="Klavyeya Windows">
-                  Daxistina Keyboarda Kurdî bo Windows
-                </LinkButton>
-              </div>
             </>
           )}
         </section>
@@ -332,7 +351,7 @@ export default function Home({ initialWord }) {
           </div>
         )}
 
-        {status === 'ready' && results.length === 0 && (
+        {status === 'ready' && results.length === 0 && arabicResults.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <p className="text-sm text-slate-light dark:text-slate-dark">
               No {dialect.nativeLabel} entries start with{' '}
@@ -341,6 +360,30 @@ export default function Home({ initialWord }) {
               </span>
               {' '}yet.
             </p>
+          </div>
+        )}
+
+        {arabicResults.length > 0 && (
+          <div className="mb-8">
+            <p dir="rtl" className="mb-4 text-center text-sm text-slate-light dark:text-slate-dark">
+              <span className="font-arabic">"{query}"</span> ← li van peyvan hate dîtin
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {arabicResults.map(({ dialectKey: dk, entry }, i) => (
+                <ResultCard
+                  key={dk + entry.word + i}
+                  entry={entry}
+                  dialectKey={dk}
+                  onTermClick={handleTermClick}
+                  showDialectBadge
+                  isFavorite={favorites.has(dk, entry.word)}
+                  onToggleFavorite={(favDk, word) =>
+                    favorites.has(favDk, word) ? favorites.remove(favDk, word) : favorites.add(favDk, word)
+                  }
+                  style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}
+                />
+              ))}
+            </div>
           </div>
         )}
 

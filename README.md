@@ -20,6 +20,30 @@ npm install
 npm run dev
 ```
 
+## Desktop app (Windows / macOS / Linux)
+
+The same React/Vite frontend runs unmodified inside a
+[Tauri](https://tauri.app) shell — no forked UI, no duplicated search or
+caching logic. The service worker, offline caching, hash routing, and
+localStorage-backed favorites all work as-is inside Tauri's webview; the
+dictionary data ships bundled with the app (via `frontendDist` pointing
+at the same `dist/` the web build produces), so the desktop app is fully
+offline-capable from first launch with no separate "download" step.
+
+Requires the [Rust toolchain](https://www.rust-lang.org/tools/install)
+plus Tauri's per-OS prerequisites (see
+[Tauri's prerequisites guide](https://v2.tauri.app/start/prerequisites/) —
+e.g. WebView2 on Windows, Xcode Command Line Tools on macOS,
+`webkit2gtk`/`build-essential` on Linux).
+
+```bash
+npm run tauri:dev     # desktop app with hot reload, against the Vite dev server
+npm run tauri:build   # production installer/bundle for the current OS
+```
+
+`src-tauri/` holds only the native shell (window config, icons, Cargo
+manifest) — it has no app logic of its own and doesn't need to change
+when the dictionary/UI changes.
 
 ## Architecture
 
@@ -47,7 +71,8 @@ Each dictionary is bucketed by the first letter of the headword (lowercased),
 then greedily packed into part files capped at 1.8MB (comfortably under the
 2MB requirement — largest file on disk is 1.8MB, verified). Only two
 Kurmancî letters (`a`, `b`) needed more than one part; everything else fits
-in a single file per letter.
+in a single f
+ile per letter.
 
 Each entry is stripped of fields that are constant across an entire
 language directory (`lang`, `lang_code`, `source`) and of empty arrays,
