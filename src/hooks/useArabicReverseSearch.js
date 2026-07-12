@@ -7,10 +7,19 @@ let indexPromise = null; // module-level: fetched once total, shared by every co
 
 function loadIndex() {
   if (!indexPromise) {
-    indexPromise = fetch(`${DATA_BASE}/ar-reverse-index.json`).then((res) => {
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText} fetching ar-reverse-index.json`);
-      return res.json();
-    });
+    indexPromise = fetch(`${DATA_BASE}/ar-reverse-index.json`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText} fetching ar-reverse-index.json`);
+        return res.json();
+      })
+      .catch((err) => {
+        // A transient network hiccup shouldn't permanently wedge the
+        // feature for the rest of the session — without this, one failed
+        // fetch would leave every future search silently rejecting
+        // against the same cached failure until the page reloads.
+        indexPromise = null;
+        throw err;
+      });
   }
   return indexPromise;
 }

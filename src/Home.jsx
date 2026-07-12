@@ -53,6 +53,7 @@ export default function Home({ initialWord }) {
     () => localStorage.getItem(ARABIC_ENABLED_KEY) === '1'
   );
   const [arabicResults, setArabicResults] = useState([]);
+  const [arabicStatus, setArabicStatus] = useState('idle'); // idle | loading | ready | error
   const { search: searchArabic } = useArabicReverseSearch();
 
   const dialect = DIALECTS[dialectKey];
@@ -125,12 +126,24 @@ export default function Home({ initialWord }) {
   useEffect(() => {
     if (!arabicEnabled || !looksLikeArabic(debouncedQuery)) {
       setArabicResults([]);
+      setArabicStatus('idle');
       return;
     }
     let cancelled = false;
-    searchArabic(debouncedQuery).then(({ results: r, stale }) => {
-      if (!cancelled && !stale) setArabicResults(r);
-    });
+    setArabicStatus('loading');
+    searchArabic(debouncedQuery)
+      .then(({ results: r, stale }) => {
+        if (cancelled || stale) return;
+        setArabicResults(r);
+        setArabicStatus('ready');
+      })
+      .catch(() => {
+        // Without this, a failed fetch (e.g. a flaky connection) would
+        // leave arabicResults empty forever with zero feedback — reading
+        // exactly like "searched and found nothing" instead of "the
+        // search itself couldn't run."
+        if (!cancelled) setArabicStatus('error');
+      });
     return () => {
       cancelled = true;
     };
@@ -164,6 +177,7 @@ export default function Home({ initialWord }) {
     ? results.slice(page * pageSize, (page + 1) * pageSize)
     : results.slice(0, pageSize);
   const searchTruncated = !isBrowsing && results.length > pageSize;
+  const arabicPending = arabicEnabled && looksLikeArabic(debouncedQuery) && arabicStatus === 'loading';
 
   const handlePageChange = (nextPage) => {
     setPage(nextPage);
@@ -351,7 +365,20 @@ export default function Home({ initialWord }) {
           </div>
         )}
 
-        {status === 'ready' && results.length === 0 && arabicResults.length === 0 && (
+        {arabicPending && (
+          <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <RojDisc size={28} rayCount={10} spinning className="text-roj" />
+            <p className="text-sm text-slate-light dark:text-slate-dark">Tê lêgerîn…</p>
+          </div>
+        )}
+
+        {arabicStatus === 'error' && (
+          <p className="mb-8 rounded-xl border border-roj/30 bg-roj/10 p-4 text-center text-sm text-roj-deep dark:text-roj-soft">
+            Lêgerîna bi erebî biserneket.
+          </p>
+        )}
+
+        {!arabicPending && status === 'ready' && results.length === 0 && arabicResults.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <p className="text-sm text-slate-light dark:text-slate-dark">
               No {dialect.nativeLabel} entries start with{' '}
