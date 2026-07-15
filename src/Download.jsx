@@ -1,13 +1,13 @@
 // src/Download.jsx
 import RojDisc from "./components/RojDisc";
 import BackHomeButton from "./components/BackHomeButton";
-import { useDesktopReleases } from "./hooks/useDesktopReleases";
-import { detectDesktopOS } from "./lib/platform";
+import { useAppReleases } from "./hooks/useAppReleases";
+import { detectPlatform } from "./lib/platform";
 import { PLATFORMS, formatAssetSize } from "./lib/platforms";
 
 export default function Download({ navigate }) {
-  const { status, data } = useDesktopReleases();
-  const recommended = detectDesktopOS();
+  const { status, data } = useAppReleases();
+  const recommended = detectPlatform();
 
   return (
     <main className="mx-auto max-w-2xl px-6 pb-20 pt-10 sm:pt-16">
@@ -18,12 +18,12 @@ export default function Download({ navigate }) {
       </div>
 
       <h1 className="mb-2 text-center animate-rise-in font-display text-4xl font-medium tracking-tight text-ink dark:text-paper">
-        Li ser Desktopê ferhengê daxe
+        Sepana Ferheng ji her cîhazekî re
       </h1>
       <p
         className="mb-12 text-center animate-rise-in text-base text-slate-light dark:text-slate-dark"
         style={{ animationDelay: "60ms" }}>
-        Ferheng, rasterast li ser kompîtura te.
+        Ferheng, rasterast li ser telefon û kompîtura te.
       </p>
 
       {status === "loading" && (
@@ -34,7 +34,7 @@ export default function Download({ navigate }) {
 
       {status === "unavailable" && (
         <p className="rounded-2xl border border-paper-border bg-paper-raised/60 p-6 text-center text-sm text-slate-light dark:border-ink-border dark:bg-ink-raised/60 dark:text-slate-dark">
-          Guhertoyên Desktopê hê nehatine weşandin — di demek nêz de amade
+          Guhertoyên sepanê hê nehatine weşandin — di demek nêz de amade
           dibe.
         </p>
       )}
@@ -73,7 +73,7 @@ export default function Download({ navigate }) {
                   <p className="text-xs text-slate-light dark:text-slate-dark">
                     {asset
                       ? installerNote
-                      : "Ev guhertoya sermaseyê hê nehatiye weşandin."}
+                      : "Ev guhertoya sepanê hê nehatiye weşandin."}
                   </p>
                 </div>
                 {asset ? (

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { detectDesktopOS } from './platform';
+import { detectPlatform } from './platform';
 
 function stubNavigator(userAgent, platform = '') {
   vi.stubGlobal('navigator', { userAgent, platform });
@@ -9,29 +9,29 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('detectDesktopOS', () => {
+describe('detectPlatform', () => {
   it('detects Windows', () => {
     stubNavigator('Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Win32');
-    expect(detectDesktopOS()).toBe('windows');
+    expect(detectPlatform()).toBe('windows');
   });
 
   it('detects macOS', () => {
     stubNavigator('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 'MacIntel');
-    expect(detectDesktopOS()).toBe('macos');
+    expect(detectPlatform()).toBe('macos');
   });
 
   it('detects Linux', () => {
     stubNavigator('Mozilla/5.0 (X11; Linux x86_64)', 'Linux x86_64');
-    expect(detectDesktopOS()).toBe('linux');
+    expect(detectPlatform()).toBe('linux');
   });
 
-  it('returns null for Android, so no desktop installer is ever suggested', () => {
+  it('detects Android (a Linux-based UA, but Android must win the match)', () => {
     stubNavigator('Mozilla/5.0 (Linux; Android 14)', 'Linux armv8l');
-    expect(detectDesktopOS()).toBeNull();
+    expect(detectPlatform()).toBe('android');
   });
 
-  it('returns null for iOS', () => {
+  it('returns null for iOS, since there is no iOS build to offer', () => {
     stubNavigator('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)', 'iPhone');
-    expect(detectDesktopOS()).toBeNull();
+    expect(detectPlatform()).toBeNull();
   });
 });

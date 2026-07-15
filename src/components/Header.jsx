@@ -82,7 +82,7 @@ export default function Header({ theme, onThemeChange, route, navigate }) {
           </a>
           {!isTauri && (
             <button onClick={goToDownload} className={navLinkClass(route === '/download')}>
-              Daxistin li ser Computer
+              Daxistina Sepanê
             </button>
           )}
         </nav>
@@ -131,7 +131,7 @@ export default function Header({ theme, onThemeChange, route, navigate }) {
                 onClick={goToDownload}
                 className={`rounded-xl px-3 py-2 text-left ${navLinkClass(route === '/download')}`}
               >
-                Daxistin li ser Computer
+                Daxistina Sepanê
               </button>
             )}
             <div className="mt-1 flex items-center justify-between rounded-xl border-t border-paper-border px-3 pt-3 dark:border-ink-border">

@@ -1,24 +1,24 @@
-// src/components/DesktopDownloadToast.jsx
+// src/components/AppDownloadToast.jsx
 import { useState } from 'react';
-import { useDesktopReleases } from '../hooks/useDesktopReleases';
-import { detectDesktopOS, isTauri } from '../lib/platform';
+import { useAppReleases } from '../hooks/useAppReleases';
+import { detectPlatform, isTauri } from '../lib/platform';
 import { PLATFORMS } from '../lib/platforms';
 
-const DISMISSED_KEY = 'ferheng-desktop-promo-dismissed';
+const DISMISSED_KEY = 'ferheng-app-promo-dismissed';
 
 // A corner notification, not a banner baked into the page — it should
 // read as "by the way, here's a thing," not compete with the search UX
-// the way an inline card did. Only ever appears for a detected desktop
-// OS (Windows/macOS/Linux); phones, tablets, and anything unrecognized
-// get nothing, since there's no mobile build to offer.
-export default function DesktopDownloadToast({ navigate }) {
+// the way an inline card did. Only ever appears for a detected platform
+// with a real build (Android, Windows, macOS, Linux); iOS and anything
+// unrecognized get nothing, since there's no iOS build to offer.
+export default function AppDownloadToast({ navigate }) {
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISSED_KEY) === '1');
-  const { status, data } = useDesktopReleases();
-  const os = detectDesktopOS();
+  const { status, data } = useAppReleases();
+  const platformKey = detectPlatform();
 
-  if (isTauri || dismissed || !os || status !== 'ready' || !data[os]) return null;
+  if (isTauri || dismissed || !platformKey || status !== 'ready' || !data[platformKey]) return null;
 
-  const platform = PLATFORMS.find((p) => p.key === os);
+  const platform = PLATFORMS.find((p) => p.key === platformKey);
   const dismiss = () => {
     localStorage.setItem(DISMISSED_KEY, '1');
     setDismissed(true);
@@ -40,11 +40,11 @@ export default function DesktopDownloadToast({ navigate }) {
         Hûn li ser {platform.label} in
       </div>
       <p className="mt-1 text-xs text-slate-light dark:text-slate-dark">
-        Ferheng jî wekî app sermaseyê heye.
+        Ferheng jî wekî sepan heye.
       </p>
       <div className="mt-3 flex items-center gap-3">
         <a
-          href={data[os].url}
+          href={data[platformKey].url}
           onClick={dismiss}
           className="rounded-full bg-roj px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-roj-soft"
         >

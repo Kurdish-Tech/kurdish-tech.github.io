@@ -1,4 +1,4 @@
-// src/hooks/useDesktopReleases.js
+// src/hooks/useAppReleases.js
 import { useEffect, useState } from 'react';
 
 const RELEASES_API =
@@ -7,7 +7,7 @@ const RELEASES_API =
 // Installer filenames carry the version number (from the Tauri/cargo-bundle
 // build), so there's no fixed URL to link to directly — the release has to
 // be fetched and its assets matched by extension. Order matters: the first
-// match per OS wins when a release has more than one installer for it.
+// match per platform wins when a release has more than one installer for it.
 function pickAsset(assets, extensions) {
   for (const ext of extensions) {
     const found = assets.find((a) => a.name.toLowerCase().endsWith(ext));
@@ -23,6 +23,7 @@ export function parseRelease(release) {
     // versioning scheme — that "app-" namespacing is an implementation
     // detail and shouldn't leak into what's shown to people.
     version: release.tag_name.replace(/^app-/, ''),
+    android: pickAsset(assets, ['.apk']),
     windows: pickAsset(assets, ['.exe', '.msi']),
     macos: pickAsset(assets, ['.dmg']),
     linux: pickAsset(assets, ['.appimage', '.deb']),
@@ -47,7 +48,7 @@ function fetchLatestRelease() {
   return releasePromise;
 }
 
-export function useDesktopReleases() {
+export function useAppReleases() {
   const [state, setState] = useState({ status: 'loading', data: null });
 
   useEffect(() => {
