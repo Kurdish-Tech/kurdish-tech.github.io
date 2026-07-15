@@ -113,6 +113,13 @@ jobs:
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
+      - name: Wire up release signing in Gradle
+        # `tauri android init` regenerates a fresh app/build.gradle.kts
+        # every run with no signing config at all — a keystore.properties
+        # file alone does nothing unless something actually reads it, so
+        # this has to patch that in each time too.
+        run: node scripts/patch-android-signing.cjs src-tauri/gen/android/app/build.gradle.kts
+
       - name: Set up release signing
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "${{ github.workspace }}/ferheng-release.jks"
