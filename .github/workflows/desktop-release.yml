@@ -113,6 +113,16 @@ jobs:
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
+      - name: Apply the real app icon
+        # `tauri android init` scaffolds Tauri's own generic placeholder
+        # icon every run — it does not pull from src-tauri/icons/android/,
+        # even though that's exactly where `tauri icon` already generated
+        # Ferheng's real icon. Has to be copied in by hand after each init.
+        run: cp -r src-tauri/icons/android/. src-tauri/gen/android/app/src/main/res/
+
+      - name: Raise the WebView heap limit
+        run: node scripts/patch-android-manifest.cjs src-tauri/gen/android/app/src/main/AndroidManifest.xml
+
       - name: Wire up release signing in Gradle
         # `tauri android init` regenerates a fresh app/build.gradle.kts
         # every run with no signing config at all — a keystore.properties
