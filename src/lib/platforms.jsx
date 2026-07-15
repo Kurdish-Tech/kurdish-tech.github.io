@@ -1,19 +1,13 @@
 // src/lib/platforms.jsx
-// Shared between the app-download toast and the full downloads page —
+// Shared between the desktop-download toast and the full downloads page —
 // one place to define what a "platform" looks like so both stay in sync.
+//
+// Android intentionally isn't here — see git history around "add Android
+// support" / "roll back Android Tauri target". The PWA (installable via
+// the browser's own "Add to Home Screen") already covers mobile; see
+// InstallPwaToast for that path instead.
 
 export const PLATFORMS = [
-  {
-    key: 'android',
-    label: 'Android',
-    installerNote: '.apk — saz bike, paşê "sazkirina ji çavkaniyên nenas" qebûl bike',
-    icon: (props) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-        <rect x="6" y="7" width="12" height="14" rx="2" />
-        <path d="M9 3l1.5 2M15 3l-1.5 2M9 11v5M15 11v5" />
-      </svg>
-    ),
-  },
   {
     key: 'windows',
     label: 'Windows',

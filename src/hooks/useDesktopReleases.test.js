@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseRelease } from './useAppReleases';
+import { parseRelease } from './useDesktopReleases';
 
 function asset(name, size = 1024) {
   return { name, size, browser_download_url: `https://example.com/${name}` };
@@ -14,7 +14,6 @@ describe('parseRelease', () => {
         asset('Ferheng_1.0.0_universal.dmg'),
         asset('ferheng_1.0.0_amd64.AppImage'),
         asset('ferheng_1.0.0_amd64.deb'),
-        asset('Ferheng_1.0.0_universal.apk'),
       ],
     };
     const parsed = parseRelease(release);
@@ -22,7 +21,6 @@ describe('parseRelease', () => {
     expect(parsed.windows.name).toBe('Ferheng_1.0.0_x64-setup.exe');
     expect(parsed.macos.name).toBe('Ferheng_1.0.0_universal.dmg');
     expect(parsed.linux.name).toBe('ferheng_1.0.0_amd64.AppImage');
-    expect(parsed.android.name).toBe('Ferheng_1.0.0_universal.apk');
   });
 
   it('prefers .exe over .msi for Windows when both are present', () => {

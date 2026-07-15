@@ -1,16 +1,22 @@
-name: Release App
+name: Release Desktop App
 
-# Builds the Tauri shell for Windows, macOS (universal), Linux, and
-# Android, then attaches the installers to one shared GitHub Release.
-# Cross-compiling the desktop targets isn't realistic (each OS's
-# installer format needs its own native toolchain), so those three fan
-# out across native runners; Android cross-compiles fine from Linux via
-# the NDK, so it gets its own job alongside them.
+# Builds the Tauri desktop shell for Windows, macOS (universal) and Linux,
+# then attaches the installers to a GitHub Release. Cross-compiling these
+# isn't realistic (each OS's installer format needs its own native
+# toolchain), so this fans out across three runners instead of one.
+#
+# Android was tried here too (see git history around "add Android
+# support") and rolled back: the PWA already covers everything that
+# mattered on mobile (standalone install, offline, auto-update), while
+# the Tauri Android wrapper brought real, unresolved cost — a signing
+# pipeline, per-init Gradle/manifest patching, and an OutOfMemoryError
+# crash that survived doubling the heap. Desktop has none of that
+# baggage and just works, so it's the only mobile-adjacent target left.
 #
 # Triggered by pushing a tag like "app-v1.0.0" — kept separate from the
-# "main" branch push that redeploys the website (deploy.yml), since an
-# app release is a deliberate, versioned act, not something that should
-# fire on every commit.
+# "main" branch push that redeploys the website (deploy.yml), since a
+# desktop release is a deliberate, versioned act, not something that
+# should fire on every commit.
 
 on:
   push:
@@ -63,90 +69,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: app-v__VERSION__
-          releaseName: 'Ferheng v__VERSION__'
-          releaseBody: 'Installers for Windows, macOS, Linux and Android. See the assets below.'
+          releaseName: 'Ferheng Desktop v__VERSION__'
+          releaseBody: 'Desktop installers for Windows, macOS and Linux. See the assets below.'
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
-
-  android:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Setup Android NDK
-        id: setup-ndk
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r26d
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
-
-      - name: Install cargo-ndk
-        run: cargo install cargo-ndk
-
-      - name: Install frontend dependencies
-        run: npm ci
-
-      - name: Init Android project
-        run: npx tauri android init
-        env:
-          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-
-      - name: Apply the real app icon
-        # `tauri android init` scaffolds Tauri's own generic placeholder
-        # icon every run — it does not pull from src-tauri/icons/android/,
-        # even though that's exactly where `tauri icon` already generated
-        # Ferheng's real icon. Has to be copied in by hand after each init.
-        run: cp -r src-tauri/icons/android/. src-tauri/gen/android/app/src/main/res/
-
-      - name: Raise the WebView heap limit
-        run: node scripts/patch-android-manifest.cjs src-tauri/gen/android/app/src/main/AndroidManifest.xml
-
-      - name: Wire up release signing in Gradle
-        # `tauri android init` regenerates a fresh app/build.gradle.kts
-        # every run with no signing config at all — a keystore.properties
-        # file alone does nothing unless something actually reads it, so
-        # this has to patch that in each time too.
-        run: node scripts/patch-android-signing.cjs src-tauri/gen/android/app/build.gradle.kts
-
-      - name: Set up release signing
-        run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "${{ github.workspace }}/ferheng-release.jks"
-          cat > src-tauri/gen/android/keystore.properties <<EOF
-          password=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          storeFile=${{ github.workspace }}/ferheng-release.jks
-          EOF
-
-      - name: Build APK
-        run: npx tauri android build --apk
-        env:
-          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-
-      - name: Attach APK to release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          draft: true
-          files: src-tauri/gen/android/app/build/outputs/apk/**/release/*.apk

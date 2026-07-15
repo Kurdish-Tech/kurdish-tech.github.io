@@ -7,7 +7,8 @@ import { isTauri } from './lib/platform';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import UpdateToast from './components/UpdateToast';
-import AppDownloadToast from './components/AppDownloadToast';
+import DesktopDownloadToast from './components/DesktopDownloadToast';
+import InstallPwaToast from './components/InstallPwaToast';
 import Home from './Home';
 import About from './About';
 import Download from './Download';
@@ -63,7 +64,8 @@ export default function App() {
       </div>
       <Footer navigate={navigate} />
       {needRefresh && <UpdateToast onUpdate={applyUpdate} />}
-      <AppDownloadToast navigate={navigate} />
+      <DesktopDownloadToast navigate={navigate} />
+      <InstallPwaToast />
     </div>
   );
 }

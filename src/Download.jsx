@@ -1,12 +1,12 @@
 // src/Download.jsx
 import RojDisc from "./components/RojDisc";
 import BackHomeButton from "./components/BackHomeButton";
-import { useAppReleases } from "./hooks/useAppReleases";
+import { useDesktopReleases } from "./hooks/useDesktopReleases";
 import { detectPlatform } from "./lib/platform";
 import { PLATFORMS, formatAssetSize } from "./lib/platforms";
 
 export default function Download({ navigate }) {
-  const { status, data } = useAppReleases();
+  const { status, data } = useDesktopReleases();
   const recommended = detectPlatform();
 
   return (
@@ -18,12 +18,12 @@ export default function Download({ navigate }) {
       </div>
 
       <h1 className="mb-2 text-center animate-rise-in font-display text-4xl font-medium tracking-tight text-ink dark:text-paper">
-        Sepana Ferheng ji her cîhazekî re
+        Li ser Desktopê ferhengê daxe
       </h1>
       <p
         className="mb-12 text-center animate-rise-in text-base text-slate-light dark:text-slate-dark"
         style={{ animationDelay: "60ms" }}>
-        Ferheng, rasterast li ser telefon û kompîtura te.
+        Ferheng, rasterast li ser kompîtura te.
       </p>
 
       {status === "loading" && (
@@ -34,7 +34,7 @@ export default function Download({ navigate }) {
 
       {status === "unavailable" && (
         <p className="rounded-2xl border border-paper-border bg-paper-raised/60 p-6 text-center text-sm text-slate-light dark:border-ink-border dark:bg-ink-raised/60 dark:text-slate-dark">
-          Guhertoyên sepanê hê nehatine weşandin — di demek nêz de amade
+          Guhertoyên Desktopê hê nehatine weşandin — di demek nêz de amade
           dibe.
         </p>
       )}
@@ -73,7 +73,7 @@ export default function Download({ navigate }) {
                   <p className="text-xs text-slate-light dark:text-slate-dark">
                     {asset
                       ? installerNote
-                      : "Ev guhertoya sepanê hê nehatiye weşandin."}
+                      : "Ev guhertoya sermaseyê hê nehatiye weşandin."}
                   </p>
                 </div>
                 {asset ? (

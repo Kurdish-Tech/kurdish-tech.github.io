@@ -1,19 +1,20 @@
-// src/components/AppDownloadToast.jsx
+// src/components/DesktopDownloadToast.jsx
 import { useState } from 'react';
-import { useAppReleases } from '../hooks/useAppReleases';
+import { useDesktopReleases } from '../hooks/useDesktopReleases';
 import { detectPlatform, isTauri } from '../lib/platform';
 import { PLATFORMS } from '../lib/platforms';
 
-const DISMISSED_KEY = 'ferheng-app-promo-dismissed';
+const DISMISSED_KEY = 'ferheng-desktop-promo-dismissed';
 
 // A corner notification, not a banner baked into the page — it should
 // read as "by the way, here's a thing," not compete with the search UX
-// the way an inline card did. Only ever appears for a detected platform
-// with a real build (Android, Windows, macOS, Linux); iOS and anything
-// unrecognized get nothing, since there's no iOS build to offer.
-export default function AppDownloadToast({ navigate }) {
+// the way an inline card did. Only ever appears for a detected desktop
+// OS (Windows/macOS/Linux) with a real build; mobile visitors get
+// InstallPwaToast instead (there's no Android/iOS installer here — see
+// git history around "roll back Android Tauri target").
+export default function DesktopDownloadToast({ navigate }) {
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISSED_KEY) === '1');
-  const { status, data } = useAppReleases();
+  const { status, data } = useDesktopReleases();
   const platformKey = detectPlatform();
 
   if (isTauri || dismissed || !platformKey || status !== 'ready' || !data[platformKey]) return null;
@@ -40,7 +41,7 @@ export default function AppDownloadToast({ navigate }) {
         Hûn li ser {platform.label} in
       </div>
       <p className="mt-1 text-xs text-slate-light dark:text-slate-dark">
-        Ferheng jî wekî sepan heye.
+        Ferheng jî wekî sepana sermaseyê heye.
       </p>
       <div className="mt-3 flex items-center gap-3">
         <a

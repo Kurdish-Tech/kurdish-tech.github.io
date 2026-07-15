@@ -10,11 +10,13 @@ export const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in
 export const isMac =
   typeof navigator !== 'undefined' && /mac/i.test(navigator.platform || navigator.userAgent || '');
 
-// Best-effort guess at which install to recommend on the download
-// section — based on the browser's own OS, not the (possibly different)
-// machine/device the app will actually run on. Returns null for iOS and
-// anything unrecognized rather than guessing wrong, since there's no iOS
-// build to offer.
+// Best-effort OS/device guess, based on the browser's own platform, not
+// the (possibly different) machine/device the app will actually run on.
+// Two separate things read this: DesktopDownloadToast (windows/macos/
+// linux — a real Tauri installer exists for those) and InstallPwaToast
+// (android — no installer, but there's a PWA install prompt to offer).
+// iOS gets null here since neither of those applies to it; InstallPwaToast
+// checks isIOS directly instead.
 export function detectPlatform() {
   if (typeof navigator === 'undefined') return null;
   const ua = `${navigator.userAgent || ''} ${navigator.platform || ''}`;
@@ -25,3 +27,6 @@ export function detectPlatform() {
   if (/linux/i.test(ua)) return 'linux';
   return null;
 }
+
+export const isIOS =
+  typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent || '');
